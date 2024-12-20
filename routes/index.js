@@ -7,27 +7,32 @@ const userModel= require("./users");
 //requiring passport
 const passport= require('passport');
 const localStrategy= require('passport-local');
-passport.authenticate(new localStrategy(userModel.authenticate()));
+passport.use(new localStrategy({ usernameField: 'email' }, userModel.authenticate()));
+
+
+const path = require('path');
+router.use('/public', express.static(path.join(__dirname, 'public')));
 
 /* GET home page. -- THIS WILL BE THE HOME PAGE */
 router.get('/', function(req, res, next) {
   res.render('index', { title: 'Pustakalay' });
 });
 
-
-
-//PROFILE BACKEND
-//only work if loggedin
-router.get('/profile',isLoggedIn,function(req,res,next){
-  res.send("profile")
+router.get('/register', function(req, res, next) {
+  res.render('register', { title: 'Pustakalay' });
 });
+
+router.get('/home',function(req,res,next){
+  res.render('home', { title: 'Pustakalay' })
+});
+
+
 
 //REGISTER BACKEND
 router.post('/register',function(req,res){
   //esko reduce krke bhi likha ja skta hai 
-  /* something like this 
   const{name,email,Phone_no} = req.body;
-  const userData = ({name,email, Phone_no }); */
+ 
 
   const userData = new userModel({
     name :req.body.name,
@@ -36,18 +41,27 @@ router.post('/register',function(req,res){
   })  
 
   //send the user from register page to profile page as it got registered
-  userModel.register(userData,req.body.password)
-  .then(function(){
-      passport.authenticate("local")(req,res, function(){
-        res.redirect('/login');
-      })
+  userModel.register(userData, req.body.password)
+  .then(function () {
+      passport.authenticate("local")(req, res, function () {
+        console.log("Registration successful, redirecting to login page...");
+          res.redirect("/home"); // Redirect to login page
+      });
   })
+  .catch(function (err) {
+      console.error("Registration error:", err);
+      if (err.code === 11000) { // Duplicate key error
+          res.status(400).send("Email or Phone number already exists. Please use a different one.");
+      } else {
+          res.status(500).send("Registration failed. Please try again.");
+      }
+  });
 })
 
 //LOGIN BACKEND
-router.post('/login', passport.authenticate("local",{
+router.post("/", passport.authenticate("local",{
   successRedirect: "/home",
-  failureRedirect: "/login"
+  failureRedirect: "/"
 }), function(req,res){
 });
 
@@ -55,7 +69,7 @@ router.post('/login', passport.authenticate("local",{
 router.get('/logout', function(req, res, next){
   req.logout(function(err) {
     if (err) { return next(err); }
-    res.redirect('/login');
+    res.redirect('/');
   });
 });
 

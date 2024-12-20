@@ -10,7 +10,6 @@ const UserSchema = new Schema({
     },
     password :{
         type: String,
-        required : true,
         minlength: 6
     },
     email :{
@@ -31,7 +30,9 @@ const UserSchema = new Schema({
         default: Date.now
     }
 });
+UserSchema.plugin(plm, {
+    usernameField: 'email', // Specify the username field
+});
 
-UserSchema.plugin(plm);
 
 module.exports = mongoose.model('User',UserSchema);
